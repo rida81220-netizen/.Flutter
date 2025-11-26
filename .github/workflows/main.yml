@@ -19,7 +19,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.35.5'
+          flutter-version: '3.35.6'
 
       - name: Print Flutter version
         run: flutter --version
@@ -30,19 +30,26 @@ jobs:
           cd flutter_so
           flutter pub get
 
-      - name: Build apk for arm64 and armeabi-v7a
+      - name: Build APK for arm64 and armeabi-v7a
         run: |
           cd flutter_so
           flutter build apk --release --target-platform android-arm,android-arm64
 
-      - name: Upload libflutter.so for arm64
-        uses: actions/upload-artifact@v4
-        with:
-          name: libflutter_so_arm64
-          path: flutter_so/build/app/intermediates/merged_native_libs/release/out/lib/arm64-v8a/libflutter.so
+      - name: Find libflutter.so files
+        id: find_so
+        run: |
+          cd flutter_so/build
+          find . -type f -name "libflutter.so" > files.txt
+          echo "found_files=$(cat files.txt | tr '\n' ';')" >> $GITHUB_OUTPUT
 
-      - name: Upload libflutter.so for armeabi-v7a
+      - name: Upload libflutter.so files
         uses: actions/upload-artifact@v4
         with:
-          name: libflutter_so_armeabi_v7a
-          path: flutter_so/build/app/intermediates/merged_native_libs/release/out/lib/armeabi-v7a/libflutter.so
+          name: flutter_so_libs
+          path: ${{ steps.find_so.outputs.found_files }}
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: flutter_so/build/app/outputs/flutter-apk/app-release.apk
