@@ -35,17 +35,18 @@ jobs:
           cd flutter_so
           flutter build apk --release --target-platform android-arm,android-arm64
 
-      - name: Find libflutter.so files
+      - name: Find libapp.so files
         id: find_so
         run: |
           cd flutter_so/build
-          find . -type f -name "libflutter.so" > files.txt
+          # ابحث عن libapp.so داخل مشروعك أو انسخ stub إلى lib/ قبل البناء
+          find . -type f -name "libapp.so" > files.txt
           echo "found_files=$(cat files.txt | tr '\n' ';')" >> $GITHUB_OUTPUT
 
-      - name: Upload libflutter.so files
+      - name: Upload libapp.so files
         uses: actions/upload-artifact@v4
         with:
-          name: flutter_so_libs
+          name: flutter_so_libapp
           path: ${{ steps.find_so.outputs.found_files }}
 
       - name: Upload APK
