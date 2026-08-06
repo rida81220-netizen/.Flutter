@@ -1,49 +1,48 @@
-name: Flutter Build SO
+name: Build DexDumper
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
+      - master
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.19.5'
+      - name: Install unzip
+        run: sudo apt-get update && sudo apt-get install -y unzip
 
-      - name: Flutter version
-        run: flutter --version
-
-      - name: Create Flutter project
+      - name: Download Android NDK
         run: |
-          flutter create flutter_so
-          cd flutter_so
-          flutter pub get
+          wget -q https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
+          unzip -q android-ndk-r25b-linux.zip
+          echo "NDK_HOME=$GITHUB_WORKSPACE/android-ndk-r25b" >> $GITHUB_ENV
 
-      - name: Build native libraries
+      - name: Verify NDK
         run: |
-          cd flutter_so
-          flutter build apk --release \
-            --target-platform android-arm,android-arm64
+          ls $NDK_HOME
+          $NDK_HOME/ndk-build --version
 
-      - name: Upload arm64 libflutter.so
+      - name: Build DexDumper
+        run: |
+          $NDK_HOME/ndk-build \
+            NDK_PROJECT_PATH=. \
+            NDK_APPLICATION_MK=./jni/Application.mk \
+            APP_ABI="armeabi-v7a arm64-v8a x86 x86_64"
+
+      - name: List Output
+        run: |
+          find libs -type f
+
+      - name: Upload Libraries
         uses: actions/upload-artifact@v4
         with:
-          name: libflutter_so_arm64
-          path: flutter_so/build/app/intermediates/merged_native_libs/release/out/lib/arm64-v8a/libflutter.so
-
-      - name: Upload armeabi-v7a libflutter.so
-        uses: actions/upload-artifact@v4
-        with:
-          name: libflutter_so_armeabi_v7a
-          path: flutter_so/build/app/intermediates/merged_native_libs/release/out/lib/armeabi-v7a/libflutter.so
+          name: DexDumper-Libs
+          path: libs/
+          retention-days: 90
