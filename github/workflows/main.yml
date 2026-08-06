@@ -11,38 +11,36 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      NDK_VERSION: r25b
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install unzip
-        run: sudo apt-get update && sudo apt-get install -y unzip
-
-      - name: Download Android NDK
+      - name: Install Android NDK
         run: |
           wget -q https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
           unzip -q android-ndk-r25b-linux.zip
-          echo "NDK_HOME=$GITHUB_WORKSPACE/android-ndk-r25b" >> $GITHUB_ENV
+          echo "NDK_HOME=$PWD/android-ndk-r25b" >> $GITHUB_ENV
 
-      - name: Verify NDK
+      - name: Find DexDumper
         run: |
-          ls $NDK_HOME
-          $NDK_HOME/ndk-build --version
+          find . -name Android.mk
+          find . -name Application.mk
 
-      - name: Build DexDumper
+      - name: Build
         run: |
+          cd dexdumper
+
           $NDK_HOME/ndk-build \
             NDK_PROJECT_PATH=. \
+            APP_BUILD_SCRIPT=./jni/Android.mk \
             NDK_APPLICATION_MK=./jni/Application.mk \
-            APP_ABI="armeabi-v7a arm64-v8a x86 x86_64"
+            APP_PLATFORM=android-21
 
-      - name: List Output
-        run: |
-          find libs -type f
-
-      - name: Upload Libraries
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: DexDumper-Libs
-          path: libs/
-          retention-days: 90
+          name: DexDumper
+          path: dexdumper/libs
